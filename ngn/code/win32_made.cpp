@@ -1,8 +1,22 @@
-#include <windows.h>
-#include <stdint.h>
-#include <xinput.h>
-#include <dsound.h>
-#include <math.h>
+/*
+    TODO(D): THIS IS NOT A FINAL PLATFORM LAYER
+
+    - Saved game location
+    - Getting a handle to our own executable file
+    - Asset loading path
+    - Threading (launch a thread)
+    - Raw Input (Support multiple keyboards)
+    - Sleep / TimeBeginPeriod
+    - ClipCursor() (for multimonitor support)
+    - Fullscreen support
+    - WM_SETCURSOR (control cursor visability)
+    - QueryCancelAutoplay
+    - WM_ACTIVEAPP (for when we are not the active application)
+    - Blit speed improvements (BitBlt)
+    - Hardware acceleration (OpenGL or Direct3D or Vulcan)
+    - GetKeyboardLayout (international WASD support)
+*/
+#include <stdio.h>
 
 #define internal static
 #define local_presist static
@@ -23,6 +37,14 @@ typedef uint64_t uint64;
 
 typedef float real32;
 typedef double real64;
+
+#include "engine.cpp"
+
+#include <windows.h>
+#include <stdint.h>
+#include <xinput.h>
+#include <dsound.h>
+#include <math.h>
 
 struct win32_offscreen_buffer
 {
@@ -68,7 +90,12 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter )
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
-
+void *
+PlatformLoadFile(char *FileName)
+{
+    // NOTE(D): Implements the Win32 file loading
+    return(0);
+}
 
 internal void
 Win32LoadXInput(void)
@@ -192,26 +219,6 @@ Win32GetWindowDimension(HWND Window)
     Result.Height = ClientRect.bottom - ClientRect.top;
 
     return(Result);
-}
-
-internal void
-RenderWeirdGradient(win32_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
-{
-    uint8 *Row = (uint8 *)Buffer->Memory;
-    for (int Y = 0;
-         Y < Buffer->Height;
-         ++Y)
-    {
-        uint32 *Pixel = (uint32 *)Row;
-        for (int X = 0; X < Buffer->Width; ++X)
-        {
-            uint8 Blue = (X + BlueOffset);
-            uint8 Green = (Y + GreenOffset);
-            *Pixel++ = ((Green << 8) | Blue);
-        }
-
-        Row += Buffer->Pitch;
-    }
 }
 
 internal void
@@ -406,12 +413,16 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
     }
 }
 
-int CALLBACK 
+int CALLBACK
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
         LPSTR CommandLine,
         int ShowCode)
 {
+    LARGE_INTEGER PerfCountFrequencyResult;
+    QueryPerformanceCounter(&PerfCountFrequencyResult);
+    int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+
     Win32LoadXInput();
 
     WNDCLASSA WindowClass = {};
@@ -424,7 +435,7 @@ WinMain(HINSTANCE Instance,
     // WindowClass.hIcon;
     WindowClass.lpszClassName = "EngineWindowClass";
 
-    if(RegisterClass(&WindowClass))
+    if (RegisterClass(&WindowClass))
     {
         HWND Window = CreateWindowEx(
             0,
@@ -461,6 +472,11 @@ WinMain(HINSTANCE Instance,
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
             GlobalRunning = true;
+
+            LARGE_INTEGER LastCounter;
+            QueryPerformanceCounter(&LastCounter);
+            uint64 LastCycleCount = __rdtsc();
+
             while(GlobalRunning)
             {
                 MSG Message;
@@ -506,8 +522,8 @@ WinMain(HINSTANCE Instance,
                         // XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
                         // XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
 
-                        XOffset += StickX >> 12;
-                        YOffset += StickY >> 12;
+                        XOffset += StickX / 4096;
+                        YOffset += StickY / 4096;
 
                         SoundOutput.ToneHz = 512 + (int)(256.0f * ((real32)StickY / 30000.0f));
                         SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
@@ -536,7 +552,12 @@ WinMain(HINSTANCE Instance,
                     }
                 }
 
-                RenderWeirdGradient(&GlobalBackbuffer, XOffset, YOffset);
+                game_offscreen_buffer Buffer = {};
+                Buffer.Memory = GlobalBackbuffer.Memory;
+                Buffer.Width = GlobalBackbuffer.Width;
+                Buffer.Height = GlobalBackbuffer.Height;
+                Buffer.Pitch = GlobalBackbuffer.Pitch;
+                GameUpdateAndRender(&Buffer, XOffset, YOffset);
 
                 // NOTE(D): DirectSound output test
                 DWORD PlayCursor;
@@ -551,9 +572,6 @@ WinMain(HINSTANCE Instance,
                             (SoundOutput.LatencySamppleCount*SoundOutput.BytesPerSample)) %
                          SoundOutput.SecondaryBufferSize);
                     DWORD BytesToWrite;
-                    
-                    // TODO(D): Change this to using a lower latency offset from the playcursor
-                    // when we actually start having sound effects.
                     if (ByteToLock > TargetCursor)
                     {
                         BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
@@ -570,6 +588,24 @@ WinMain(HINSTANCE Instance,
                 win32_window_dimension Dimension = Win32GetWindowDimension(Window);
                 Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
                                            Dimension.Width, Dimension.Height);
+
+                uint64 EndCycleCount = __rdtsc();
+
+                LARGE_INTEGER EndCounter;
+                QueryPerformanceCounter(&EndCounter);
+
+                uint64 CycleElapsed = EndCycleCount - LastCycleCount;
+                int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+                real64 MSPerFrame = (((1000.0f * (real64)CounterElapsed) / (real64)PerfCountFrequency));
+                real64 FPS = (real64)PerfCountFrequency / (real64)CounterElapsed;
+                real64 MSPF = ((real64)CycleElapsed / (1000.0f * 1000.0f));
+#if 0
+                char Buffer[256];
+                sprintf(Buffer, "%fms/f, %.02ff/s, %.02fmc/f\n", MSPerFrame, FPS, MSPF);
+                OutputDebugStringA(Buffer);
+#endif
+                LastCounter = EndCounter;
+                LastCycleCount = EndCycleCount;
             }
         }
         else
