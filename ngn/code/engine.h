@@ -12,7 +12,16 @@ struct game_offscreen_buffer
     int Height;
     int Pitch;
 };
-internal void GameUpdateAndRender(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset);
+
+struct game_sound_output_buffer
+{
+    int SamplesPerSecond;
+    int SampleCount;
+    int16 *Samples;
+};
+
+internal void GameUpdateAndRender(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset,
+                                  game_sound_output_buffer *SoundBuffer);
 
 #define ENGINE_H
 #endif
