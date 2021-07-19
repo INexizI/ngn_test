@@ -1,12 +1,11 @@
 #include "engine.h"
 
 internal void
-GameOutputSound(game_sound_output_buffer *SoundBuffer)
+GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
     local_presist real32 tSine;
     int16 ToneVolume = 3000;
     int16 *SampleOut = SoundBuffer->Samples;
-    int ToneHz = 256;
     int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;
 
     for (int SampleIndex = 0;
@@ -43,10 +42,37 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffs
 }
 
 internal void
-GameUpdateAndRender(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset,
+GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
                     game_sound_output_buffer *SoundBuffer)
 {
+    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+
+    game_state *GameState = (game_state *)Memory->PermanentStorage;
+    if(!Memory->IsInitialized)
+    {
+        GameState->ToneHz = 256;
+
+        Memory->IsInitialized = true;
+    }
+
+    game_controller_input *Input0 = &Input->Controllers[1];
+    if(Input0->IsAnalog)
+    {
+        // NOTE(D): Use analog movement tuning
+        GameState->BlueOffset += (int)4.0f*(Input0->EndX);
+        GameState->ToneHz = 256 + (int)(128.0f * (Input0->EndY));
+    }
+    else
+    {
+        // NOTE(D): Use digital movement tuning
+    }
+
+    if(Input0->Down.EndedDown)
+    {
+        GameState->GreenOffset += 1;
+    }
+
     // TODO(D): Allow sample offsets here for more robust platform options
-    GameOutputSound(SoundBuffer);
-    RenderWeirdGradient(Buffer, BlueOffset, GreenOffset);
+    GameOutputSound(SoundBuffer, GameState->ToneHz);
+    RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }
