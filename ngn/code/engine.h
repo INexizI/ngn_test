@@ -26,9 +26,27 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 // TODO(D): swap, min, max ... macros???
 
+inline uint32
+SafeTruncateUInt64(uint64 Value)
+{
+    Assert(Value <= 0xFFFFFFFF);
+    uint32 Result = (uint32)Value;
+    return (Result);
+}
+
 /*
-    TODO(D): Services that the platform layer provides to the game
+    NOTE(D): Services that the platform layer provides to the game
 */
+struct debug_read_file_result
+{
+    uint32 ContentSize;
+    void *Contents;
+};
+#if MADE_INTERNAL
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char *Filename);
+internal void DEBUGPlatformFreeFileMemory(void *Memory);
+internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory);
+#endif
 
 /*
     NOTE(D): Services that the game to the platform layer
