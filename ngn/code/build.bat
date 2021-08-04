@@ -6,6 +6,7 @@ set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
-cl %CommonCompilerFlags% ..\ngn\code\engine.cpp -Fmengine.map /LD /link /DLL /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples
+del *.pdb > NUL 2> NUL
+cl %CommonCompilerFlags% ..\ngn\code\engine.cpp -Fmengine.map -LD /link -incremental:no /PDB:engine_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%.pdb -EXPORT:GameUpdateAndRender -EXPORT:GameGetSoundSamples
 cl %CommonCompilerFlags% ..\ngn\code\win32_made.cpp -Fmwin32_made.map /link %CommonLinkerFlags%
 popd
