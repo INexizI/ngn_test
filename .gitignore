@@ -33,4 +33,5 @@
 
 # Debug File
 test.out
-loop_edit.ei
+engine_*.pdb
+*.ei
