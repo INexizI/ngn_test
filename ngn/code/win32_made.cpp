@@ -956,7 +956,7 @@ WinMain(HINSTANCE Instance,
 
     WNDCLASSA WindowClass = {};
 
-    Win32ResizeDIBSection(&GlobalBackbuffer, 1280, 720);
+    Win32ResizeDIBSection(&GlobalBackbuffer, 960, 540);
 
     WindowClass.style = CS_HREDRAW|CS_VREDRAW;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
@@ -1055,6 +1055,7 @@ WinMain(HINSTANCE Instance,
                                 GENERIC_WRITE|GENERIC_READ, 0, 0, CREATE_ALWAYS, 0, 0);
 
                 LARGE_INTEGER MaxSize;
+                MaxSize.QuadPart = Win32State.TotalSize;
                 ReplayBuffer->MemoryMap = CreateFileMapping(
                     ReplayBuffer->FileHandle, 0, PAGE_READWRITE,
                     MaxSize.HighPart, MaxSize.LowPart, 0);
@@ -1067,7 +1068,6 @@ WinMain(HINSTANCE Instance,
                 else
                 {
                     // TODO(D): Diagnostic
-                    // Assert(ReplayBuffer->MemoryBlock);
                 }
             }
 
@@ -1076,6 +1076,7 @@ WinMain(HINSTANCE Instance,
                 game_input Input[2] = {};
                 game_input *NewInput = &Input[0];
                 game_input *OldInput = &Input[1];
+                NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
 
                 LARGE_INTEGER LastCounter = Win32GetWallClock();
                 LARGE_INTEGER FlipWallClock = Win32GetWallClock();
