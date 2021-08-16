@@ -1,6 +1,9 @@
 #if !defined(ENGINE_PLATFORM_H)
 
-// https://youtu.be/EwhVulgF16g?t=5431
+/* 
+    NOTE(D): Link to Video about re-write to C-compiler
+    https://youtu.be/EwhVulgF16g?t=5431
+*/
 
 #include <stdint.h>
 
