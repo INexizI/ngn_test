@@ -54,48 +54,28 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 //
 //
 
-struct tile_chunk_position
-{
-    uint32 TileChunkX;
-    uint32 TileChunkY;
+#include "engine_intrinsics.h"
+#include "engine_tile.h"
 
-    uint32 RelTileX;
-    uint32 RelTileY;
+struct memory_arena
+{
+    memory_index Size;
+    uint8 *Base;
+    memory_index Used;    
 };
 
-struct world_position
-{
-    uint32 AbsTileX;
-    uint32 AbsTileY;
-
-    real32 TileRelX;
-    real32 TileRelY;
-};
-
-struct tile_chunk
-{
-    uint32 *Tiles;
-};
 
 struct world
 {
-    uint32 ChunkShift;
-    uint32 ChunkMask;
-    uint32 ChunkDim;
-
-    real32 TileSideInMeters;
-    int32 TileSideInPixels;
-    real32 MetersToPixels;
-
-    int32 TileChunkCountX;
-    int32 TileChunkCountY;
-
-    tile_chunk *TileChunks;
+    tile_map *TileMap;
 };
 
 struct game_state
 {
-    world_position PlayerP;
+    memory_arena WorldArena;
+    world *World;
+
+    tile_map_position PlayerP;
 };
 
 #define ENGINE_H

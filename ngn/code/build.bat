@@ -1,7 +1,7 @@
 @echo off
 cls
 
-set CommonCompilerFlags=-MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DMADE_INTERNAL=1 -DMADE_SLOW=1 -DENGINE_WIN32=1 -FC -Z7
+set CommonCompilerFlags=-MTd -nologo -fp:fast -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DMADE_INTERNAL=1 -DMADE_SLOW=1 -DENGINE_WIN32=1 -FC -Z7
 REM set CommonCompilerFlags=-MT -nologo -Gm- -GR- -EHa- -Od -Oi -W3 -wd4201 -wd4100 -wd4189 -DMADE_INTERNAL=1 -DMADE_SLOW=1 -DENGINE_WIN32=1 -FC -Z7 -Fmwin32_made.map
 set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
