@@ -54,16 +54,27 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 //
 //
 
-#include "engine_intrinsics.h"
-#include "engine_tile.h"
-
 struct memory_arena
 {
     memory_index Size;
     uint8 *Base;
-    memory_index Used;    
+    memory_index Used;
 };
 
+#define PushStruct(Arena, type) (type *)PushSize_(Arena, sizeof(type))
+#define PushArray(Arena, Count, type) (type *)PushSize_(Arena, (Count) * sizeof(type))
+void *
+PushSize_(memory_arena *Arena, memory_index Size)
+{
+    Assert((Arena->Used + Size) <= Arena->Size);
+    void *Result = Arena->Base + Arena->Used;
+    Arena->Used += Size;
+
+    return (Result);
+}
+
+#include "engine_intrinsics.h"
+#include "engine_tile.h"
 
 struct world
 {
