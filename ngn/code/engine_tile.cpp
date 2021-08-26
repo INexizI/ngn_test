@@ -1,27 +1,3 @@
-inline void
-RecanonicalizeCoord(tile_map *TileMap, uint32 *Tile, real32 *TileRel)
-{
-    // NOTE(d): TileMap is assumed to be toroidal topology, if you
-    // step off one end you come back on the other!
-    int32 Offset = RoundReal32ToInt32(*TileRel / TileMap->TileSideInMeters);
-    *Tile += Offset;
-    *TileRel -= Offset*TileMap->TileSideInMeters;
-
-    Assert(*TileRel >= -0.5f*TileMap->TileSideInMeters);
-    Assert(*TileRel <= 0.5f*TileMap->TileSideInMeters);
-}
-
-inline tile_map_position
-RecanonicalizePosition(tile_map *TileMap, tile_map_position Pos)
-{
-    tile_map_position Result = Pos;
-
-    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.TileRelX);
-    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.TileRelY);
-
-    return(Result);
-}
-
 inline tile_chunk *
 GetTileChunk(tile_map *TileMap, uint32 TileChunkX, uint32 TileChunkY, uint32 TileChunkZ)
 {
@@ -102,8 +78,6 @@ GetChunkPositionFor(tile_map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 
 internal uint32
 GetTileValue(tile_map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
 {
-    bool32 Empty = false;
-
     tile_chunk_position ChunkPos = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
     tile_chunk *TileChunk = GetTileChunk(TileMap, ChunkPos.TileChunkX, ChunkPos.TileChunkY, ChunkPos.TileChunkZ);
     uint32 TileChunkValue = GetTileValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY);
@@ -111,11 +85,21 @@ GetTileValue(tile_map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
     return(TileChunkValue);
 }
 
-internal bool32
-IsTileMapPointEmpty(tile_map *TileMap, tile_map_position CanPos)
+internal uint32
+GetTileValue(tile_map *TileMap, tile_map_position Pos)
 {
-    uint32 TileChunkValue = GetTileValue(TileMap, CanPos.AbsTileX, CanPos.AbsTileY, CanPos.AbsTileZ);
-    bool32 Empty = (TileChunkValue == 1);
+    bool32 TileChunkValue = GetTileValue(TileMap, Pos.AbsTileX, Pos.AbsTileY, Pos.AbsTileZ);
+
+    return(TileChunkValue);
+}
+
+internal bool32
+IsTileMapPointEmpty(tile_map *TileMap, tile_map_position Pos)
+{
+    uint32 TileChunkValue = GetTileValue(TileMap, Pos);
+    bool32 Empty = ((TileChunkValue == 1) ||
+                    (TileChunkValue == 3) ||
+                    (TileChunkValue == 4));
 
     return(Empty);
 }
@@ -142,4 +126,42 @@ SetTileValue(memory_arena *Arena, tile_map *TileMap,
     }
 
     SetTileValue(TileMap, TileChunk, ChunkPos.RelTileX, ChunkPos.RelTileY, TileValue);
+}
+
+//
+//
+//
+
+inline void
+RecanonicalizeCoord(tile_map *TileMap, uint32 *Tile, real32 *TileRel)
+{
+    // NOTE(d): TileMap is assumed to be toroidal topology, if you
+    // step off one end you come back on the other!
+    int32 Offset = RoundReal32ToInt32(*TileRel / TileMap->TileSideInMeters);
+    *Tile += Offset;
+    *TileRel -= Offset*TileMap->TileSideInMeters;
+
+    Assert(*TileRel >= -0.5f*TileMap->TileSideInMeters);
+    Assert(*TileRel <= 0.5f*TileMap->TileSideInMeters);
+}
+
+inline tile_map_position
+RecanonicalizePosition(tile_map *TileMap, tile_map_position Pos)
+{
+    tile_map_position Result = Pos;
+
+    RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.OffsetX);
+    RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.OffsetY);
+
+    return(Result);
+}
+
+inline bool32
+AreOnSameTile(tile_map_position *A, tile_map_position *B)
+{
+    bool32 Result = ((A->AbsTileX == B->AbsTileX) &&
+                     (A->AbsTileY == B->AbsTileY) &&
+                     (A->AbsTileZ == B->AbsTileZ));
+
+    return(Result);
 }
